@@ -1,0 +1,154 @@
+---
+title: "Weather Data"
+output: html_document
+date: "2023-04-21"
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+Weather_Combined_Reduced <- read_csv("/Users/chrisk./Library/CloudStorage/OneDrive-Personal/Documents/Spring Semester 2023/Data Science Project/Weather Data/Weather-Combined-Reduced.csv", 
+    col_types = cols(DATE = col_date(format = "%Y-%m-%d")))
+
+# Split data into seperate data frames by year
+data_by_year <- split(Weather_Combined_Reduced, format(Weather_Combined_Reduced$DATE, "%Y"))
+
+# Filter data_by_year na rows in columns being used
+data_by_year_filtered <- lapply(data_by_year, function(df) {
+  df_filtered <- df %>%
+  filter(!is.na(TMAX)) %>%
+  filter(!is.na(TMIN)) %>%
+  filter(!is.na(DATE))
+  return(df_filtered)
+})
+```
+
+```{r}
+# Create empty list to store date ranges
+start_years <- 1900:2022
+date_ranges <- vector("list", length = length(start_years))
+
+for (i in seq_along(start_years)) {
+  year <- start_years[i]
+  start_date <- as.Date(paste0(year, "-01-01"))
+  end_date <- as.Date(paste0(year + 1, "-01-01")) - 1
+  date_ranges[[i]] <- list(start_date, end_date)
+}
+
+# Pre-allocate memory for the results list
+results <- vector("list", length = length(date_ranges))
+
+# Get the minimum and maximum dates across all date_ranges
+min_date <- min(sapply(date_ranges, function(x) x[[1]]))
+max_date <- max(sapply(date_ranges, function(x) x[[2]]))
+
+# Filter all data frames in df_list by the minimum and maximum dates
+df_list_filtered <- lapply(data_by_year_filtered, function(df) df[df$DATE >= min_date & df$DATE <= max_date, ])
+
+
+# Loop through each data frame in the list
+for (i in seq_along(date_ranges)) {
+  df <- data_by_year_filtered[[i]]
+  date_range <- date_ranges[[i]]
+  
+  # Filter the data frame to the specified date range
+  df_filtered <- df[df$DATE >= date_range[[1]] & df$DATE <= date_range[[2]], ]
+  
+  # Get the average of the variables used TMIN and TMAX
+  avg_value <- mean(((df_filtered$TMIN + df_filtered$TMAX) / 2), na.rm = TRUE)
+  
+  # Store the result in the results list
+  results[[i]] <- avg_value
+}
+
+# Get a vector of the years
+years <- seq(1900, 2022)
+
+# Use Map() to create a list of data frames with the year and corresponding average
+df_list <- Map(data.frame, year = years, avg = results)
+
+# Use do.call() to combine the list of data frames into a single data frame
+yearly_averages <- do.call(rbind, df_list)
+
+# Print the resulting data frame
+summary(yearly_averages)
+
+reg1 <- lm(yearly_averages$avg~yearly_averages$year)
+summary(reg1)
+
+plot(yearly_averages$year, yearly_averages$avg, main = "Yearly Temperature Averages in Columbus, OH", xlab = "Years: 1900 to 2022", ylab = "Average Temperature")
+abline(reg1, col = "blue")
+```
+The slope is 0.012962
+Multiply by 10 to look at it by decade
+T-Statistic
+```{r}
+t = (.12 - .14) / (0.03751)
+t
+```
+
+```{r}
+# Create empty list to store date ranges
+start_years <- 1981:2022
+date_ranges <- vector("list", length = length(start_years))
+
+for (i in seq_along(start_years)) {
+  year <- start_years[i]
+  start_date <- as.Date(paste0(year, "-01-01"))
+  end_date <- as.Date(paste0(year + 1, "-01-01")) - 1
+  date_ranges[[i]] <- list(start_date, end_date)
+}
+
+# Pre-allocate memory for the results list
+results <- vector("list", length = length(date_ranges))
+
+# Get the minimum and maximum dates across all date_ranges
+min_date <- min(sapply(date_ranges, function(x) x[[1]]))
+max_date <- max(sapply(date_ranges, function(x) x[[2]]))
+
+# Filter all data frames in df_list by the minimum and maximum dates
+df_list_filtered <- lapply(data_by_year_filtered, function(df) df[df$DATE >= min_date & df$DATE <= max_date, ])
+
+
+# Loop through each data frame in the list
+for (i in seq_along(date_ranges)) {
+  df <- data_by_year_filtered[[i + 81]]
+  date_range <- date_ranges[[i]]
+  
+  # Filter the data frame to the specified date range
+  df_filtered <- df[df$DATE >= date_range[[1]] & df$DATE <= date_range[[2]], ]
+  
+  # Get the average of the variables used TMIN and TMAX
+  avg_value <- mean(((df_filtered$TMIN + df_filtered$TMAX) / 2), na.rm = TRUE)
+  
+  # Store the result in the results list
+  results[[i]] <- avg_value
+}
+
+# Get a vector of the years
+years <- seq(1981, 2022)
+
+# Use Map() to create a list of data frames with the year and corresponding average
+df_list <- Map(data.frame, year = years, avg = results)
+
+# Use do.call() to combine the list of data frames into a single data frame
+yearly_averages <- do.call(rbind, df_list)
+
+# Print the resulting data frame
+summary(yearly_averages)
+
+reg1 <- lm(yearly_averages$avg~yearly_averages$year)
+summary(reg1)
+
+plot(yearly_averages$year, yearly_averages$avg, main = "Yearly Temperature Averages in Columbus, OH", xlab = "Years: 1981 to 2022", ylab = "Average Temperature")
+abline(reg1, col = "blue")
+```
+
+The slope is 0.04309
+Multiply by 10 to look at it by decade
+T-Statistic
+```{r}
+t = (.43 - .32) / (0.1755)
+t
+```
